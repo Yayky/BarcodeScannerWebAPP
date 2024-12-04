@@ -1,0 +1,17 @@
+{
+  "name": "barcode-scanner-webapp",
+  "version": "1.0.0",
+  "description": "A web application for scanning barcodes and retrieving product information",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@huggingface/inference": "^2.8.1",
+    "cors": "^2.8.5",
+    "express": "^4.21.1",
+    "node-fetch": "^2.7.0",
+    "openai": "^3.2.1",
+    "puppeteer": "^21.11.0"
+  }
+}
