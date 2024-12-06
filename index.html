@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barcode Scanner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="app-container">
+            <!-- Header Section -->
+            <header class="app-header">
+                <h1><i class="fas fa-barcode"></i> Barcode Scanner</h1>
+                <p class="subtitle">Scan or manually enter a barcode to retrieve product information.</p>
+            </header>
+
+            <!-- Input Method Selection -->
+            <div class="input-method-container">
+                <div class="btn-group" role="group" aria-label="Barcode Input Method">
+                    <button type="button" class="btn btn-method active" id="scanButton">
+                        <i class="fas fa-camera"></i> Scan Barcode
+                    </button>
+                    <button type="button" class="btn btn-method" id="manualButton">
+                        <i class="fas fa-keyboard"></i> Manual Input
+                    </button>
+                </div>
+            </div>
+
+            <!-- Manual Input Form -->
+            <div class="manual-input-container d-none" id="manualInputContainer">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="barcodeInput" placeholder="Enter barcode number">
+                    <button class="btn btn-primary" type="button" id="submitBarcode">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+                <p class="text-muted mt-2">If scanning doesn't work, you can manually enter the barcode number above.</p>
+            </div>
+
+            <!-- Scanner Container -->
+            <div id="scanner-container" class="scanner-section">
+                <div id="reader" class="reader-container"></div>
+                <p class="scan-instruction"><i class="fas fa-crosshairs"></i> Position the barcode in front of your camera.</p>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loading" class="loading-container d-none">
+                <div class="spinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <p>Searching for product...</p>
+            </div>
+
+            <!-- Product Information -->
+            <div id="product-info" class="product-card d-none">
+                <div class="product-grid">
+                    <!-- Left Side - Image -->
+                    <div class="product-image-container">
+                        <img id="product-image" src="" alt="Product Image" class="product-image">
+                    </div>
+
+                    <!-- Right Side - Details -->
+                    <div class="product-details">
+                        <div class="product-header">
+                            <h2 id="product-title" class="product-title"></h2>
+                            <div id="product-size" class="product-size"></div>
+                            <div id="product-sku" class="product-sku"></div>
+                        </div>
+
+                        <!-- Collapsible Sections -->
+                        <div class="accordion" id="productAccordion">
+                            <!-- Description Section -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#descriptionCollapse">
+                                        <i class="fas fa-info-circle"></i> Description
+                                    </button>
+                                </h2>
+                                <div id="descriptionCollapse" class="accordion-collapse collapse show" data-bs-parent="#productAccordion">
+                                    <div class="accordion-body">
+                                        <div id="description-content"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Materials Section -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#materialsCollapse">
+                                        <i class="fas fa-tshirt"></i> Materials
+                                    </button>
+                                </h2>
+                                <div id="materialsCollapse" class="accordion-collapse collapse" data-bs-parent="#productAccordion">
+                                    <div class="accordion-body">
+                                        <div id="material-content"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Additional Info Section -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#additionalCollapse">
+                                        <i class="fas fa-list-ul"></i> Additional Information
+                                    </button>
+                                </h2>
+                                <div id="additionalCollapse" class="accordion-collapse collapse" data-bs-parent="#productAccordion">
+                                    <div class="accordion-body">
+                                        <div id="otherInfo-content"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Size Table Section -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sizeTableCollapse">
+                                        <i class="fas fa-ruler"></i> Size Table
+                                    </button>
+                                </h2>
+                                <div id="sizeTableCollapse" class="accordion-collapse collapse" data-bs-parent="#productAccordion">
+                                    <div class="accordion-body">
+                                        <div id="sizeTable-content"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- View Product Button -->
+                        <div class="product-footer">
+                            <a id="product-url" href="#" target="_blank" class="btn btn-primary">
+                                <i class="fas fa-external-link-alt"></i> View Product on Website
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls-container">
+                <button id="start-button" class="btn btn-action">
+                    <i class="fas fa-camera"></i> Start Scanner
+                </button>
+                <button id="scan-again" class="btn btn-action d-none">
+                    <i class="fas fa-redo"></i> Scan Another Product
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

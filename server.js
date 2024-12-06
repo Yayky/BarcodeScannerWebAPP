@@ -10,13 +10,13 @@ const port = 3000;
 // OpenAI API configuration
 const openai = new OpenAIApi(
     new Configuration({
-        apiKey: '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', // Replace with your API key
+        apiKey: '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',
     })
 );
 
-// Configure CORS to allow access from your local network
+// Configure CORS to allow access only from localhost
 app.use(cors({
-    origin: '*', // Be careful with this in production
+    origin: 'http://localhost:3000', // Only allow localhost
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type']
 }));
@@ -24,103 +24,101 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-// Function to parse description using OpenAI GPT-3.5-Turbo
-async function parseDescriptionWithGPT(description) {
-    const prompt = `
-    You are an AI that processes product descriptions and extracts specific sections. The input can describe a wide variety of products, including clothing, accessories, home goods, and outdoor equipment. Read the following product description carefully and split it into the following JSON format:
-    1. "description": A summary of the product's purpose and features.
-    2. "material": Information about the materials used (if available).
-    3. "otherInfo": A bullet-point list of additional details, including:
-       - Pflegehinweise (Care instructions)
-       - Gewicht (Weight)
-       - Certifications (e.g., OEKO-TEX, RWS, or others)
-    4. "sizeTable": For clothing items with size information, format it as a string with size measurements separated by commas and rows separated by semicolons. Each row should follow this exact format: "Size,Shoulder,Chest,BackLength". Example: "S,42,52,70;M,44,54,72;L,46,56,74". For non-clothing items or if no size table is available, return an empty string.
-
-    Ensure your output is concise, complete, and formatted correctly.
-    
-    Input:
-    ${description}
-    
-    Example Output for a T-shirt:
-    {
-      "description": "Classic cotton t-shirt with round neck and short sleeves",
-      "material": "100% organic cotton, 180g/m²",
-      "otherInfo": [
-        "- Pflegehinweise: Machine washable at 30°C, tumble dry low",
-        "- Gewicht: 200g",
-        "- Certifications: OEKO-TEX Standard 100"
-      ],
-      "sizeTable": "S,42,52,70;M,44,54,72;L,46,56,74;XL,48,58,76"
-    }
-
-    Example Output for a non-clothing item:
-    {
-      "description": "Stainless steel water bottle with double-wall insulation",
-      "material": "18/8 food-grade stainless steel",
-      "otherInfo": [
-        "- Pflegehinweise: Hand wash only",
-        "- Gewicht: 500g",
-        "- Certifications: BPA-free"
-      ],
-      "sizeTable": ""
-    }`;
-
-    try {
-        console.log('Sending request to OpenAI...');
-        const response = await openai.createChatCompletion({
-            model: 'gpt-3.5-turbo',
-            messages: [
-                { role: 'system', content: 'You are a helpful assistant that splits product descriptions into structured JSON sections.' },
-                { role: 'user', content: prompt },
-            ],
-            max_tokens: 800,
-            temperature: 0.3,
-        });
-
-        const rawResponse = response.data.choices[0].message.content.trim();
-        console.log('Raw OpenAI Response:', rawResponse);
-
-        // Remove backticks and validate JSON
-        const cleanedResponse = rawResponse.replace(/```json|```/g, '').trim();
-        console.log('Cleaned Response:', cleanedResponse);
-
-        if (isValidJson(cleanedResponse)) {
-            const parsedJson = JSON.parse(cleanedResponse);
-            console.log('Successfully parsed JSON:', parsedJson);
-            return parsedJson;
-        } else {
-            console.error('Invalid JSON format detected in the OpenAI response');
-            throw new Error('Invalid JSON format in OpenAI response');
-        }
-    } catch (error) {
-        console.error('Error in parseDescriptionWithGPT:', error);
-        console.error('Error details:', {
-            message: error.message,
-            response: error.response?.data,
-            status: error.response?.status
-        });
-        
-        // Return a structured error response
-        return {
-            description: 'Error processing description. Please try again.',
-            material: 'Material information unavailable.',
-            otherInfo: 'Additional information unavailable.',
-            sizeTable: 'Size table unavailable.',
-            error: error.message
-        };
-    }
+// Utility function for cleaning and validating the parsed response
+function validateParsedResponse(parsedResponse) {
+    return {
+        description: typeof parsedResponse.description === "string" ? parsedResponse.description.trim() : "",
+        materials: typeof parsedResponse.materials === "string" ? parsedResponse.materials.trim() : "",
+        sizeInfo: typeof parsedResponse.sizeInfo === "string" ? parsedResponse.sizeInfo.trim() : "",
+        otherInfo: typeof parsedResponse.otherInfo === "string" ? parsedResponse.otherInfo.trim() : ""
+    };
 }
 
-// Helper function to validate JSON
-function isValidJson(jsonString) {
+// Function to parse product description using OpenAI GPT-3.5-Turbo
+async function parseProductDescription(description) {
     try {
-        const result = JSON.parse(jsonString);
-        // Check if the parsed result has all required fields
-        const requiredFields = ['description', 'material', 'otherInfo', 'sizeTable'];
-        return requiredFields.every(field => result.hasOwnProperty(field));
-    } catch (e) {
-        console.error('JSON validation error:', e);
-        return false;
+        const prompt = `
+        Analyze the following product description and extract the following information as JSON:
+        {
+            "description": "Brief summary of product features",
+            "materials": {
+                "Außenmaterial": "e.g., 100 % Merino Wool",
+                "Innenmaterial": "e.g., 100 % Merino Wool"
+            },
+            "sizeInfo": {
+                "Größentabelle": {
+                    "XS": {
+                        "1/2 Schulter": "value",
+                        "1/2 Brust": "value",
+                        "Rückenlänge": "value"
+                    },
+                    ...
+                }
+            },
+            "otherInfo": {
+                "certifications": ["certifications"],
+                "careInstructions": "care instructions",
+                "gender": "gender",
+                "additionalDetails": ["additional features"]
+            }
+        }
+
+        Product Description:
+        ${description}
+        `;
+
+        const completion = await openai.createChatCompletion({
+            model: "gpt-3.5-turbo",
+            messages: [
+                { role: "system", content: "You are a JSON parser. Respond with JSON only." },
+                { role: "user", content: prompt }
+            ],
+            temperature: 0.3,
+            max_tokens: 1000
+        });
+
+        let rawResponse = completion.data.choices[0]?.message?.content?.trim();
+
+        if (!rawResponse) {
+            console.error('Error: OpenAI API returned an empty response');
+            return { description: '', materials: '', sizeInfo: '', otherInfo: '' };
+        }
+
+        console.log('Raw OpenAI Response:', rawResponse);
+
+        // Clean the response by removing markdown code blocks (```json and ```)
+        rawResponse = rawResponse.replace(/```json|```/g, '');
+
+        // Try to parse the JSON
+        let parsedResponse;
+        try {
+            parsedResponse = JSON.parse(rawResponse);
+        } catch (parseError) {
+            console.error('Error parsing OpenAI response:', { error: parseError.message, rawResponse });
+            return { description: '', materials: '', sizeInfo: '', otherInfo: '' };
+        }
+
+        // Format the materials, sizeInfo, and otherInfo as strings for the frontend
+        const formattedResponse = {
+            description: parsedResponse.description || '',
+            materials: Object.entries(parsedResponse.materials || {})
+                .map(([key, value]) => `${key}: ${value}`)
+                .join(', '),
+            sizeInfo: Object.entries(parsedResponse.sizeInfo?.Größentabelle || {})
+                .map(([size, details]) => `${size}: ${Object.entries(details).map(([k, v]) => `${k}: ${v}`).join(', ')}`)
+                .join(' | '),
+            otherInfo: [
+                ...((parsedResponse.otherInfo?.certifications || []).map(c => `Certification: ${c}`)),
+                `Care Instructions: ${parsedResponse.otherInfo?.careInstructions || ''}`,
+                `Gender: ${parsedResponse.otherInfo?.gender || ''}`,
+                ...(parsedResponse.otherInfo?.additionalDetails || [])
+            ].join('. ')
+        };
+
+        return formattedResponse;
+    } catch (error) {
+        console.error('Error in parseProductDescription:', error);
+        return { description: '', materials: '', sizeInfo: '', otherInfo: '' };
     }
 }
 
@@ -186,20 +184,22 @@ app.get('/search/:barcode', async (req, res) => {
 
         // Extract product information
         const productData = await page.evaluate(() => {
-            const title = document.querySelector('#pd-form > section > aside > div.pd-info.pd-group > div.page-title > h1')?.textContent?.trim() || '';
-            const sku = document.querySelector('#pd-form > section > aside > div.pd-attrs-container > table > tbody > tr > td:nth-child(2)')?.textContent?.trim() || '';
-            const description = document.querySelector('#collapse-pd-tabs-0 > div')?.textContent?.trim() || '';
-            const size = document.querySelector('.select2-selection__rendered')?.textContent?.trim() || 'Size not available';
-            const imageElement = document.querySelector('#pd-gallery img');
-            const imageUrl = imageElement ? imageElement.src : '';
-            const productUrl = window.location.href;
+            const cleanText = (selector) =>
+                document.querySelector(selector)?.textContent?.trim() || '';
 
-            return { title, sku, description, size, imageUrl, productUrl };
+            return {
+                title: cleanText('#pd-form > section > aside > div.pd-info.pd-group > div.page-title > h1'),
+                sku: cleanText('#pd-form > section > aside > div.pd-attrs-container > table > tbody > tr > td:nth-child(2)'),
+                description: cleanText('#collapse-pd-tabs-0 > div'),
+                size: cleanText('.select2-selection__rendered'),
+                imageUrl: document.querySelector('#pd-gallery img')?.src || '',
+                productUrl: window.location.href
+            };
         });
 
         // Parse the description using OpenAI GPT
         console.log('Parsing description using OpenAI GPT-3.5-Turbo...');
-        productData.parsedDescription = await parseDescriptionWithGPT(productData.description);
+        productData.parsedDescription = await parseProductDescription(productData.description);
         console.log('Parsed description:', productData.parsedDescription);
 
         // Send the response
@@ -217,18 +217,6 @@ app.get('/search/:barcode', async (req, res) => {
 });
 
 // Start the server
-app.listen(port, '0.0.0.0', () => {
-    console.log(`Server running at http://0.0.0.0:${port}`);
-    console.log('To access from your phone, use one of these URLs:');
-    // Get local IP addresses
-    const { networkInterfaces } = require('os');
-    const nets = networkInterfaces();
-    for (const name of Object.keys(nets)) {
-        for (const net of nets[name]) {
-            // Skip internal (i.e. 127.0.0.1) and non-IPv4 addresses
-            if (net.family === 'IPv4' && !net.internal) {
-                console.log(`http://${net.address}:${port}`);
-            }
-        }
-    }
+app.listen(port, 'localhost', () => {
+    console.log(`Server running at http://localhost:${port}`);
 });
