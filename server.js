@@ -10,7 +10,7 @@ const port = 3000;
 // OpenAI API config
 const openai = new OpenAIApi(
     new Configuration({
-        apiKey: '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', // Replace with your API key
+        apiKey: '', // Replace with your API key
     })
 );
 
