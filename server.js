@@ -7,16 +7,16 @@ const { Configuration, OpenAIApi } = require('openai');
 const app = express();
 const port = 3000;
 
-// OpenAI API configuration
+// OpenAI API config
 const openai = new OpenAIApi(
     new Configuration({
         apiKey: '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', // Replace with your API key
     })
 );
 
-// Configure CORS to allow access from your local network
+// Config CORS to allow access from your local network
 app.use(cors({
-    origin: '*', // Be careful with this in production
+    origin: '*', // Be careful with this
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type']
 }));
@@ -24,7 +24,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-// Function to parse description using OpenAI GPT-3.5-Turbo
+// Function to parse description using OpenAI GPT-3.5
 async function parseDescriptionWithGPT(description) {
     const prompt = `
     You are an AI that processes product descriptions and extracts specific sections. The input can describe a wide variety of products, including clothing, accessories, home goods, and outdoor equipment. Read the following product description carefully and split it into the following JSON format:
@@ -100,7 +100,7 @@ async function parseDescriptionWithGPT(description) {
             status: error.response?.status
         });
         
-        // Return a structured error response
+        // Return a error message
         return {
             description: 'Error processing description. Please try again.',
             material: 'Material information unavailable.',
@@ -115,7 +115,6 @@ async function parseDescriptionWithGPT(description) {
 function isValidJson(jsonString) {
     try {
         const result = JSON.parse(jsonString);
-        // Check if the parsed result has all required fields
         const requiredFields = ['description', 'material', 'otherInfo', 'sizeTable'];
         return requiredFields.every(field => result.hasOwnProperty(field));
     } catch (e) {
@@ -124,7 +123,7 @@ function isValidJson(jsonString) {
     }
 }
 
-// Product search and scraping endpoint
+// Product search and scraping
 app.get('/search/:barcode', async (req, res) => {
     const { barcode } = req.params;
     console.log(`Searching for barcode: ${barcode}`);
@@ -153,13 +152,13 @@ app.get('/search/:barcode', async (req, res) => {
         
         console.log(`Navigating to: https://www.normani.de/search/?q=${barcode}`);
         
-        // Navigate to search page
+        // Go to search page
         await page.goto(`https://www.normani.de/search/?q=${barcode}`, {
             waitUntil: 'networkidle0',
             timeout: 30000
         });
 
-        // Handle cookie popup
+        // Bypass cookie popup
         try {
             const acceptButton = await page.waitForSelector('#accept-selected', { timeout: 5000 });
             if (acceptButton) {
@@ -197,7 +196,7 @@ app.get('/search/:barcode', async (req, res) => {
             return { title, sku, description, size, imageUrl, productUrl };
         });
 
-        // Parse the description using OpenAI GPT
+        // Parse the description using AI
         console.log('Parsing description using OpenAI GPT-3.5-Turbo...');
         productData.parsedDescription = await parseDescriptionWithGPT(productData.description);
         console.log('Parsed description:', productData.parsedDescription);
@@ -225,7 +224,7 @@ app.listen(port, '0.0.0.0', () => {
     const nets = networkInterfaces();
     for (const name of Object.keys(nets)) {
         for (const net of nets[name]) {
-            // Skip internal (i.e. 127.0.0.1) and non-IPv4 addresses
+            // Skip internal and non-IPv4 addresses
             if (net.family === 'IPv4' && !net.internal) {
                 console.log(`http://${net.address}:${port}`);
             }

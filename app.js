@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // Request camera permission
     async function requestCameraPermission() {
         try {
-            // Request camera permissions with getUserMedia
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: "environment", // Use rear camera if available
@@ -84,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     type: "LiveStream",
                     target: document.querySelector("#camera-feed"),
                     constraints: {
-                        facingMode: "environment", // Use rear camera
+                        facingMode: "environment",
                         width: { min: 640 },
                         height: { min: 480 },
                     },
