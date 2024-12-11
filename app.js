@@ -20,12 +20,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Request camera permission
     async function requestCameraPermission() {
+        console.log("Requesting camera permission...");
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: "environment", // Use rear camera if available
                 },
             });
+            console.log("Camera permission granted.");
             stream.getTracks().forEach((track) => track.stop()); // Stop camera immediately after permissions
             return true; // Permissions granted
         } catch (error) {
@@ -69,37 +71,35 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Initialize scanner with camera selection
     async function initScanner() {
-        const hasPermission = await requestCameraPermission();
-        if (!hasPermission) {
-            // If permissions are denied, switch to manual input mode
-            manualButton.click();
-            return false;
-        }
+        const constraints = {
+            facingMode: "environment", // Use rear camera
+        };
     
         try {
             await Quagga.init({
                 inputStream: {
                     name: "Live",
                     type: "LiveStream",
-                    target: document.querySelector("#camera-feed"),
-                    constraints: {
-                        facingMode: "environment",
-                        width: { min: 640 },
-                        height: { min: 480 },
-                    },
+                    target: document.querySelector("#interactive"), // Ensure this element exists
+                    constraints: constraints,
                 },
                 decoder: {
-                    readers: ["ean_reader", "ean_8_reader", "upc_reader", "upc_e_reader"],
+                    readers: [
+                        "ean_reader",
+                        "ean_8_reader",
+                        // Add any other readers you need
+                    ],
                 },
-                locate: true,
+            }, (err) => {
+                if (err) {
+                    console.error("Quagga initialization error:", err);
+                    return;
+                }
+                console.log("Quagga initialized successfully.");
+                Quagga.start(); // Start the scanning process
             });
-            Quagga.start();
-            isScanning = true;
-            return true;
         } catch (error) {
-            console.error("Quagga initialization error:", error);
-            alert("Unable to start the scanner. Please check your camera permissions or browser settings.");
-            return false;
+            console.error("Error during Quagga initialization:", error);
         }
     }
 
@@ -201,11 +201,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Event Listeners
     startButton.addEventListener('click', async () => {
-        const success = await initScanner();
-        if (!success) {
-            resetUI();
-        } else {
-            startButton.classList.add('d-none');
+        const permissionGranted = await requestCameraPermission();
+        if (permissionGranted) {
+            const success = await initScanner();
+            if (!success) {
+                // Handle scanner initialization failure
+            }
         }
     });
 
@@ -214,13 +215,24 @@ document.addEventListener('DOMContentLoaded', function () {
         initScanner();
     });
 
-    submitBarcode.addEventListener('click', () => {
+    // Toggle between scan and manual input
+    scanButton.addEventListener('click', () => {
+        scannerContainer.classList.remove('d-none');
+        manualInputContainer.classList.add('d-none');
+    });
+
+    manualButton.addEventListener('click', () => {
+        scannerContainer.classList.add('d-none');
+        manualInputContainer.classList.remove('d-none');
+    });
+
+    // Handle manual barcode input submission
+    submitBarcode.addEventListener('click', async () => {
         const barcode = barcodeInput.value.trim();
         if (barcode) {
-            searchProduct(barcode);
-            barcodeInput.value = '';
+            await searchProduct(barcode);
         } else {
-            alert('Please enter a valid barcode.');
+            alert('Please enter a barcode.');
         }
     });
 
