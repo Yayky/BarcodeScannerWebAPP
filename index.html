@@ -99,6 +99,8 @@
 
         <!-- Scanner Container -->
         <div id="scanner-container" class="text-center mb-4">
+            <div id="interactive" class="viewport"></div>
+            <button id="start-button" class="btn btn-primary">Start Scanning</button>
             <video id="camera-feed" autoplay playsinline style="width: 100%; max-width: 640px; height: auto;"></video>
             <p class="mt-2 text-muted">Position the barcode in front of your camera</p>
         </div>
@@ -114,17 +116,15 @@
         <!-- Product Information -->
         <div id="product-info" class="card d-none">
             <div class="card-body">
-                <h2 id="product-title" class="card-title text-center mb-4"></h2>
-                <div id="description-content"></div>
-                <div id="material-content"></div>
-                <div id="otherInfo-content"></div>
-                <div id="sizeTable-content"></div>
+                <h5 class="card-title">Product Information</h5>
+                <div class="product-info-label">Title: <span class="product-info-value" id="product-title"></span></div>
+                <div class="product-info-label">SKU: <span class="product-info-value" id="product-sku"></span></div>
+                <div class="product-info-label">Description: <span class="product-info-value" id="product-description"></span></div>
             </div>
         </div>
 
         <!-- Controls -->
         <div class="text-center mt-4">
-            <button id="start-button" class="btn btn-primary btn-lg">Start Scanner</button>
             <button id="scan-again" class="btn btn-primary btn-lg d-none">Scan Another Product</button>
         </div>
     </div>
