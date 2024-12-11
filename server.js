@@ -10,7 +10,7 @@ const port = 3000;
 // OpenAI API config
 const openai = new OpenAIApi(
     new Configuration({
-        apiKey: '', // Replace with your API key
+        apiKey: '', // API key
     })
 );
 
@@ -217,7 +217,7 @@ app.get('/search/:barcode', async (req, res) => {
 
 // Start the server
 app.listen(port, '0.0.0.0', () => {
-    console.log(`Server running at http://0.0.0.0:${port}`);
+    console.log(`Server running at http://localhost:${port}`);
     console.log('To access from your phone, use one of these URLs:');
     // Get local IP addresses
     const { networkInterfaces } = require('os');
