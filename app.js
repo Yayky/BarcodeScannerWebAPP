@@ -1,105 +1,130 @@
 document.addEventListener('DOMContentLoaded', function () {
     const serverUrl = window.location.origin;
-
+    const scannerContainer = document.getElementById('scanner-container');
+    const loadingIndicator = document.getElementById('loading');
     const startButton = document.getElementById('start-button');
     const scanAgainButton = document.getElementById('scan-again');
-    const scannerContainer = document.getElementById('scanner-container');
-    const productInfo = document.getElementById('product-info');
-    const loadingIndicator = document.getElementById('loading');
-    const manualInputContainer = document.getElementById('manualInputContainer');
-    const barcodeInput = document.getElementById('barcodeInput');
-    const submitBarcode = document.getElementById('submitBarcode');
-    const scanButton = document.getElementById('scanButton');
     const manualButton = document.getElementById('manualButton');
+    const manualInputContainer = document.getElementById('manualInputContainer');
+    const submitBarcode = document.getElementById('submitBarcode');
+    const barcodeInput = document.getElementById('barcodeInput');
+    const productInfo = document.getElementById('product-info');
 
     let isScanning = false;
-    let barcodeFrequency = {};
-    let frequencyThreshold = 3;
     let lastScannedCode = null;
     let lastScanTime = 0;
 
-    // Request camera permission
-    async function requestCameraPermission() {
+    // Initialize scanner
+    async function initScanner() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: "environment", // Use rear camera if available
-                },
+                video: { facingMode: "environment" }
             });
-            stream.getTracks().forEach((track) => track.stop()); // Stop camera immediately after permissions
-            return true; // Permissions granted
-        } catch (error) {
-            console.error("Camera permission error:", error);
-            alert("Camera permissions are required to use the scanner. Please allow access in your browser settings.");
-            return false; // Permissions denied
-        }
-    }
+            
+            stream.getTracks().forEach(track => track.stop());
 
-    // Initialize Quagga with camera constraints
-    async function initQuaggaWithCamera(constraints) {
-        try {
-            await Quagga.init({
+            Quagga.init({
                 inputStream: {
                     name: "Live",
                     type: "LiveStream",
                     target: document.querySelector("#interactive"),
-                    constraints: constraints,
+                    constraints: {
+                        facingMode: "environment"
+                    },
                 },
+                locator: {
+                    patchSize: "medium",
+                    halfSample: true
+                },
+                numOfWorkers: navigator.hardwareConcurrency ? Math.min(navigator.hardwareConcurrency, 4) : 2,
                 decoder: {
                     readers: [
                         "ean_reader",
                         "ean_8_reader",
                         "upc_reader",
-                        "upc_e_reader",
-                        "code_128_reader",
-                        "code_39_reader",
-                    ],
+                        "upc_e_reader"
+                    ]
                 },
-                locate: true,
+                locate: true
+            }, function(err) {
+                if (err) {
+                    console.error("Quagga initialization error:", err);
+                    alert("Unable to start the scanner. Please check your camera permissions or browser settings.");
+                    startButton.classList.remove('d-none');
+                    scannerContainer.classList.add('d-none');
+                    return;
+                }
+                console.log("Quagga initialization succeeded");
+                Quagga.start();
+                isScanning = true;
+                scannerContainer.classList.remove('d-none');
             });
 
-            Quagga.start();
-            isScanning = true;
             return true;
         } catch (error) {
-            console.error('Quagga initialization error:', error);
+            console.error("Camera permission error:", error);
+            alert("Camera permissions are required to use the scanner. Please allow access in your browser settings.");
             return false;
         }
     }
 
-    // Initialize scanner with camera selection
-    async function initScanner() {
-        const hasPermission = await requestCameraPermission();
-        if (!hasPermission) {
-            // If permissions are denied, switch to manual input mode
-            manualButton.click();
-            return false;
-        }
-    
+    // Search for product using barcode
+    async function searchProduct(barcode) {
         try {
-            await Quagga.init({
-                inputStream: {
-                    name: "Live",
-                    type: "LiveStream",
-                    target: document.querySelector("#camera-feed"),
-                    constraints: {
-                        facingMode: "environment",
-                        width: { min: 640 },
-                        height: { min: 480 },
-                    },
-                },
-                decoder: {
-                    readers: ["ean_reader", "ean_8_reader", "upc_reader", "upc_e_reader"],
-                },
-                locate: true,
-            });
-            Quagga.start();
-            isScanning = true;
-            return true;
+            if (isScanning) {
+                scannerContainer.classList.add('d-none');
+            }
+            loadingIndicator.classList.remove('d-none');
+            startButton.classList.add('d-none');
+            scanAgainButton.classList.add('d-none');
+            productInfo.classList.add('d-none');
+
+            console.log('Searching for barcode:', barcode);
+            const response = await fetch(`${serverUrl}/search/${barcode}`);
+            const responseData = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(responseData.error || responseData.details || 'Error fetching product data');
+            }
+
+            // Get the product description element
+            const productDescription = document.getElementById('product-description');
+            
+            // Convert <br/> to newlines and preserve bold tags
+            let formattedText = responseData.data
+                .replace(/<br\/?>/g, '\n')  // Convert <br/> to newline
+                .split('\n')                // Split into lines
+                .map(line => line.trim())   // Trim each line
+                .filter(line => line)       // Remove empty lines
+                .join('\n');                // Join with newlines
+
+            // Create a temporary div to handle HTML content
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = formattedText;
+            
+            // Style the text with proper spacing and preserve bold
+            productDescription.style.whiteSpace = 'pre-line';  // Preserve line breaks
+            productDescription.innerHTML = tempDiv.innerHTML;   // Use innerHTML to preserve bold tags
+
+            // Clear other fields
+            document.getElementById('product-title').textContent = '';
+            document.getElementById('product-sku').textContent = '';
+            document.getElementById('product-price').textContent = '';
+            
+            const productImage = document.getElementById('product-image');
+            productImage.style.display = 'none'; // Hide the image
+
+            loadingIndicator.classList.add('d-none');
+            productInfo.classList.remove('d-none');
+            scanAgainButton.classList.remove('d-none');
         } catch (error) {
-            console.error("Quagga initialization error:", error);
-            alert("Unable to start the scanner. Please check your camera permissions or browser settings.");
-            return false;
+            console.error('Error searching for product:', error);
+            alert(error.message);
+            loadingIndicator.classList.add('d-none');
+            if (isScanning) {
+                scannerContainer.classList.remove('d-none');
+            }
+            startButton.classList.remove('d-none');
         }
     }
 
@@ -108,110 +133,52 @@ document.addEventListener('DOMContentLoaded', function () {
         const code = result.codeResult.code;
         const currentTime = new Date().getTime();
 
-        if (code !== lastScannedCode || currentTime - lastScanTime > 5000) {
-            barcodeFrequency = {};
-            lastScannedCode = code;
+        // Debounce scanning to prevent multiple rapid scans
+        if (currentTime - lastScanTime < 2000) {
+            return;
         }
 
-        lastScanTime = currentTime;
-        barcodeFrequency[code] = (barcodeFrequency[code] || 0) + 1;
-
-        if (barcodeFrequency[code] >= frequencyThreshold) {
+        if (code !== lastScannedCode) {
+            console.log("Detected barcode:", code);
+            lastScannedCode = code;
+            lastScanTime = currentTime;
+            
             if (isScanning) {
                 Quagga.stop();
                 isScanning = false;
+                searchProduct(code);
             }
-
-            searchProduct(code);
-            barcodeFrequency = {};
         }
     });
 
-    // Update product information in the UI
-    function updateProductInfo(data) {
-        document.getElementById('product-title').textContent = data.title;
-        document.getElementById('product-sku').textContent = data.sku;
-        document.getElementById('product-size').textContent = data.size;
-
-        const updateSection = (elementId, content) => {
-            const element = document.getElementById(elementId);
-            element.innerHTML = content ? content.replace(/\n/g, '<br>') : 'No information available';
-        };
-
-        updateSection('description-content', data.parsedDescription.description);
-        updateSection('material-content', data.parsedDescription.material);
-        updateSection('otherInfo-content', data.parsedDescription.otherInfo);
-        updateSection('sizeTable-content', data.parsedDescription.sizeTable);
-
-        const productImage = document.getElementById('product-image');
-        if (data.imageUrl) {
-            productImage.src = data.imageUrl;
-            productImage.style.display = 'block';
-        } else {
-            productImage.style.display = 'none';
-        }
-
-        const productLink = document.getElementById('product-url').querySelector('a');
-        if (data.productUrl) {
-            productLink.href = data.productUrl;
-            productLink.style.display = 'inline-block';
-        } else {
-            productLink.style.display = 'none';
-        }
-
-        loadingIndicator.classList.add('d-none');
-        productInfo.classList.remove('d-none');
-    }
-
-    // Search for product using barcode
-    async function searchProduct(barcode) {
-        try {
-            scannerContainer.classList.add('d-none');
-            loadingIndicator.classList.remove('d-none');
-            productInfo.classList.add('d-none');
-
-            const response = await fetch(`${serverUrl}/search/${barcode}`);
-            const data = await response.json();
-
-            if (data.error) {
-                throw new Error(data.error);
-            }
-
-            updateProductInfo(data.productData);
-        } catch (error) {
-            console.error('Error searching for product:', error);
-            alert('Error searching for product. Please try again.');
-        } finally {
-            loadingIndicator.classList.add('d-none');
-        }
-    }
-
-    // Reset UI
-    function resetUI() {
-        productInfo.classList.add('d-none');
-        loadingIndicator.classList.add('d-none');
-        scannerContainer.classList.remove('d-none');
-        startButton.classList.remove('d-none');
-        scanAgainButton.classList.add('d-none');
-        if (isScanning) {
-            Quagga.stop();
-            isScanning = false;
-        }
-    }
-
     // Event Listeners
     startButton.addEventListener('click', async () => {
+        startButton.classList.add('d-none');
+        manualInputContainer.classList.add('d-none');
         const success = await initScanner();
         if (!success) {
-            resetUI();
-        } else {
-            startButton.classList.add('d-none');
+            startButton.classList.remove('d-none');
+            scannerContainer.classList.add('d-none');
         }
     });
 
     scanAgainButton.addEventListener('click', () => {
-        resetUI();
-        initScanner();
+        productInfo.classList.add('d-none');
+        scanAgainButton.classList.add('d-none');
+        startButton.classList.remove('d-none');
+        manualInputContainer.classList.remove('d-none');
+        lastScannedCode = null;
+        lastScanTime = 0;
+    });
+
+    manualButton.addEventListener('click', () => {
+        if (isScanning) {
+            Quagga.stop();
+            isScanning = false;
+        }
+        scannerContainer.classList.add('d-none');
+        manualInputContainer.classList.remove('d-none');
+        startButton.classList.add('d-none');
     });
 
     submitBarcode.addEventListener('click', () => {
@@ -219,6 +186,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (barcode) {
             searchProduct(barcode);
             barcodeInput.value = '';
+            manualInputContainer.classList.add('d-none');
         } else {
             alert('Please enter a valid barcode.');
         }
@@ -229,4 +197,7 @@ document.addEventListener('DOMContentLoaded', function () {
             submitBarcode.click();
         }
     });
+
+    // Show manual input by default
+    manualInputContainer.classList.remove('d-none');
 });

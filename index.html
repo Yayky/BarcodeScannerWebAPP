@@ -98,9 +98,8 @@
         </div>
 
         <!-- Scanner Container -->
-        <div id="scanner-container" class="text-center mb-4">
-            <video id="camera-feed" autoplay playsinline style="width: 100%; max-width: 640px; height: auto;"></video>
-            <p class="mt-2 text-muted">Position the barcode in front of your camera</p>
+        <div id="scanner-container" class="scanner-container d-none">
+            <div id="interactive" class="viewport"></div>
         </div>
 
         <!-- Loading Indicator -->
@@ -114,11 +113,11 @@
         <!-- Product Information -->
         <div id="product-info" class="card d-none">
             <div class="card-body">
-                <h2 id="product-title" class="card-title text-center mb-4"></h2>
-                <div id="description-content"></div>
-                <div id="material-content"></div>
-                <div id="otherInfo-content"></div>
-                <div id="sizeTable-content"></div>
+                <div id="product-title" class="product-info-value"></div>
+                <div id="product-sku" class="product-info-value"></div>
+                <div id="product-description" class="product-info-value"></div>
+                <div id="product-price" class="product-info-value"></div>
+                <img id="product-image" src="" alt="Product Image" class="img-fluid" />
             </div>
         </div>
 
