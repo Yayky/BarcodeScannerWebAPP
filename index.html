@@ -70,6 +70,7 @@
         #scan-again {
             margin-top: 1rem;
         }
+
     </style>
 </head>
 <body>
@@ -77,19 +78,17 @@
         <h1 class="text-center mb-4">Barcode Scanner</h1>
         
         <!-- Input Method Selection -->
-        <div class="row mb-4 justify-content-center">
+       <div class="row mb-4 justify-content-center">
             <div class="col-md-6 text-center">
                 <div class="btn-group" role="group" aria-label="Barcode Input Method">
-                    <button type="button" class="btn btn-primary" id="scanButton">Scan Barcode</button>
-                    <button type="button" class="btn btn-secondary" id="manualButton">Manual Input</button>
                 </div>
             </div>
-        </div>
+        </div> 
 
         <!-- Manual Input Form -->
-        <div class="row mb-4 justify-content-center d-none" id="manualInputContainer">
+        <div class="row mb-4 justify-content-center" id="manualInputContainer">
             <div class="col-md-6">
-                <div class="input-group">
+                <div class="input-group">   
                     <input type="text" class="form-control" id="barcodeInput" placeholder="Enter barcode number">
                     <button class="btn btn-primary" type="button" id="submitBarcode">Search</button>
                 </div>
@@ -99,7 +98,9 @@
 
         <!-- Scanner Container -->
         <div id="scanner-container" class="scanner-container d-none">
-            <div id="interactive" class="viewport"></div>
+            <div id="interactive" class="viewport">
+                <div id="interactive.viewport"></div>
+            </div>
         </div>
 
         <!-- Loading Indicator -->

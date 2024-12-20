@@ -69,3 +69,20 @@ body {
     margin: 0 auto;
     display: block;
 }
+
+#interactive video {
+    display: block;
+    width: 100%; 
+    height: auto;
+    visibility: visible; 
+    opacity: 1; 
+}
+
+#manualInputContainer {
+    position: sticky;
+    top: 0; 
+    background-color: #f8f9fa; 
+    z-index: 1000; 
+    padding: 10px 0; 
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); 
+}
