@@ -30,7 +30,7 @@ app.get('/search/:barcode', async (req, res) => {
     console.log(`Searching for barcode: ${barcode}`);
 
     try {
-        const apiUrl = `http://dynamic.normani.de/BarcodeQuery/${barcode}`;
+        const apiUrl = `http://dynamic.normani.de/Query/${barcode}`;
         console.log(`Fetching from API: ${apiUrl}`);
 
         const response = await fetch(apiUrl, fetchOptions);
